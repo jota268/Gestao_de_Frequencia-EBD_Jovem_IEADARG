@@ -1,0 +1,1049 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestão de Frequência Escolar - Domingos</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0284c7',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="h-full flex flex-col text-slate-800">
+
+    <!-- Top Navigation Header -->
+    <header class="bg-slate-900 text-white shadow-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center space-x-3">
+                    <div class="p-2 bg-brand-600 rounded-lg text-white">
+                        <i data-lucide="calendar-check-2" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-lg font-bold leading-none">Frequência Dominical</h1>
+                        <span class="text-xs text-slate-400">Controle por Trimestres & Domingos</span>
+                    </div>
+                </div>
+
+                <div class="flex items-center space-x-3">
+                    <div class="flex items-center space-x-2 bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700">
+                        <i data-lucide="calendar" class="w-4 h-4 text-brand-500"></i>
+                        <label for="selectYear" class="text-xs text-slate-400">Ano Letivo:</label>
+                        <select id="selectYear" onchange="changeYear()" class="bg-transparent text-sm font-semibold text-white focus:outline-none cursor-pointer">
+                            <option value="2025" class="bg-slate-800">2025</option>
+                            <option value="2026" selected class="bg-slate-800">2026</option>
+                            <option value="2027" class="bg-slate-800">2027</option>
+                        </select>
+                    </div>
+
+                    <button onclick="clearAllData()" class="px-3 py-1.5 bg-red-600/20 hover:bg-red-600 text-red-300 hover:text-white rounded-lg text-xs font-medium transition flex items-center gap-1 border border-red-500/30">
+                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                        Zerar Dados
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+        <!-- Quick Summary Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total de Domingos</p>
+                    <h3 id="statTotalSundays" class="text-2xl font-bold text-slate-900 mt-1">0</h3>
+                    <p class="text-xs text-slate-400 mt-1">No ano selecionado</p>
+                </div>
+                <div class="p-3 bg-blue-50 text-blue-600 rounded-xl">
+                    <i data-lucide="calendar-days" class="w-6 h-6"></i>
+                </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Aulas Realizadas</p>
+                    <h3 id="statHeldClasses" class="text-2xl font-bold text-emerald-600 mt-1">0</h3>
+                    <p class="text-xs text-slate-400 mt-1"><span id="statSuspendedClasses">0</span> suspensas/canceladas</p>
+                </div>
+                <div class="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
+                    <i data-lucide="check-circle-2" class="w-6 h-6"></i>
+                </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Alunos Cadastrados</p>
+                    <h3 id="statTotalStudents" class="text-2xl font-bold text-slate-900 mt-1">0</h3>
+                    <p class="text-xs text-slate-400 mt-1">Turma ativa</p>
+                </div>
+                <div class="p-3 bg-purple-50 text-purple-600 rounded-xl">
+                    <i data-lucide="users" class="w-6 h-6"></i>
+                </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Frequência Média</p>
+                    <h3 id="statAverageAttendance" class="text-2xl font-bold text-slate-900 mt-1">0%</h3>
+                    <p class="text-xs text-slate-400 mt-1">Taxa geral do ano</p>
+                </div>
+                <div class="p-3 bg-amber-50 text-amber-600 rounded-xl">
+                    <i data-lucide="award" class="w-6 h-6"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Navigation -->
+        <div class="bg-white rounded-xl border border-slate-200 p-1.5 flex flex-wrap gap-1 shadow-sm">
+            <button onclick="switchTab('attendance')" id="tabBtn-attendance" class="tab-btn flex-1 min-w-[120px] py-2.5 px-4 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition bg-brand-600 text-white">
+                <i data-lucide="clipboard-check" class="w-4 h-4"></i> Chamada
+            </button>
+            <button onclick="switchTab('ranking')" id="tabBtn-ranking" class="tab-btn flex-1 min-w-[120px] py-2.5 px-4 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition text-slate-600 hover:bg-slate-100">
+                <i data-lucide="trophy" class="w-4 h-4"></i> Ranking por Trimestre
+            </button>
+            <button onclick="switchTab('students')" id="tabBtn-students" class="tab-btn flex-1 min-w-[120px] py-2.5 px-4 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition text-slate-600 hover:bg-slate-100">
+                <i data-lucide="user-plus" class="w-4 h-4"></i> Cadastrar Alunos
+            </button>
+            <button onclick="switchTab('charts')" id="tabBtn-charts" class="tab-btn flex-1 min-w-[120px] py-2.5 px-4 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition text-slate-600 hover:bg-slate-100">
+                <i data-lucide="line-chart" class="w-4 h-4"></i> Relatórios & Gráficos
+            </button>
+        </div>
+
+        <!-- TAB CONTENT: CHAMADA DA AULA -->
+        <section id="tab-attendance" class="tab-content space-y-6">
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-100">
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+                            <i data-lucide="calendar" class="w-5 h-5 text-brand-600"></i>
+                            Lançar Presença Dominical
+                        </h2>
+                        <p class="text-sm text-slate-500 mt-0.5">Selecione o trimestre e a data correspondente para registrar a chamada.</p>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-3">
+                        <!-- Trimestre Select -->
+                        <div>
+                            <label for="selectQuarter" class="block text-xs font-semibold text-slate-500 uppercase mb-1">Trimestre</label>
+                            <select id="selectQuarter" onchange="onQuarterChange()" class="bg-slate-50 border border-slate-300 text-slate-800 text-sm rounded-lg focus:ring-brand-500 focus:border-brand-500 p-2 font-medium">
+                                <option value="Q1">1º Trim (Jan - Mar)</option>
+                                <option value="Q2">2º Trim (Abr - Jun)</option>
+                                <option value="Q3">3º Trim (Jul - Set)</option>
+                                <option value="Q4">4º Trim (Out - Dez)</option>
+                            </select>
+                        </div>
+
+                        <!-- Data Domingo Select -->
+                        <div>
+                            <label for="selectSunday" class="block text-xs font-semibold text-slate-500 uppercase mb-1">Domingo</label>
+                            <select id="selectSunday" onchange="loadAttendanceSheet()" class="bg-slate-50 border border-slate-300 text-slate-800 text-sm rounded-lg focus:ring-brand-500 focus:border-brand-500 p-2 font-medium min-w-[180px]">
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Status Banner da Aula -->
+                <div id="suspendedBanner" class="hidden mt-4 p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between">
+                    <div class="flex items-center gap-3 text-amber-800">
+                        <i data-lucide="alert-triangle" class="w-5 h-5 text-amber-600 flex-shrink-0"></i>
+                        <div>
+                            <p class="font-bold text-sm">Aula Suspensa / Cancelada nesta data!</p>
+                            <p id="suspendedReasonText" class="text-xs text-amber-700 mt-0.5">Motivo: Não informado</p>
+                        </div>
+                    </div>
+                    <button onclick="toggleSuspendCurrentSunday()" class="text-xs font-semibold px-3 py-1.5 bg-amber-200 hover:bg-amber-300 text-amber-900 rounded-lg transition">
+                        Reativar Aula
+                    </button>
+                </div>
+
+                <!-- Tabela de Chamada -->
+                <div class="mt-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-sm font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
+                            Lista de Alunos
+                            <span id="studentCountBadge" class="bg-slate-100 text-slate-600 text-xs px-2 py-0.5 rounded-full font-normal">0 alunos</span>
+                        </h3>
+
+                        <div class="flex items-center gap-2">
+                            <button onclick="markAll('P')" class="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-xs font-semibold rounded-lg transition flex items-center gap-1">
+                                <i data-lucide="check-circle" class="w-3.5 h-3.5"></i> Marcar Todos Presentes
+                            </button>
+                            <button onclick="markAll('F')" class="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-semibold rounded-lg transition flex items-center gap-1">
+                                <i data-lucide="x-circle" class="w-3.5 h-3.5"></i> Marcar Todos Ausentes
+                            </button>
+                            <button onclick="toggleSuspendModal()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 text-xs font-semibold rounded-lg transition flex items-center gap-1">
+                                <i data-lucide="ban" class="w-3.5 h-3.5"></i> Suspender Aula
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto border border-slate-200 rounded-xl">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-50 text-slate-500 text-xs uppercase font-semibold border-b border-slate-200">
+                                    <th class="py-3 px-4">Aluno</th>
+                                    <th class="py-3 px-4 text-center">Status de Presença</th>
+                                </tr>
+                            </thead>
+                            <tbody id="attendanceTbody" class="divide-y divide-slate-100 text-sm">
+                                <!-- Linhas dinamicas -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div id="noStudentsNotice" class="hidden py-12 text-center">
+                        <i data-lucide="users" class="w-12 h-12 text-slate-300 mx-auto mb-2"></i>
+                        <p class="text-slate-500 font-medium">Nenhum aluno cadastrado ainda.</p>
+                        <p class="text-xs text-slate-400 mt-1">Vá para a aba "Cadastrar Alunos" para adicionar participantes.</p>
+                    </div>
+
+                    <!-- Botão Salvar Chamada -->
+                    <div class="mt-6 flex justify-end">
+                        <button onclick="saveAttendance()" class="px-6 py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-xl shadow-sm transition flex items-center gap-2">
+                            <i data-lucide="save" class="w-4 h-4"></i> Salvar Chamada do Domingo
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB CONTENT: RANKING -->
+        <section id="tab-ranking" class="tab-content space-y-6 hidden">
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-100">
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+                            <i data-lucide="trophy" class="w-5 h-5 text-amber-500"></i>
+                            Ranking de Frequência
+                        </h2>
+                        <p class="text-sm text-slate-500 mt-0.5">Acompanhe o desempenho e assiduidade dos alunos por período.</p>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <label for="rankingFilter" class="text-xs font-semibold text-slate-500 uppercase">Filtrar por:</label>
+                        <select id="rankingFilter" onchange="renderRanking()" class="bg-slate-50 border border-slate-300 text-slate-800 text-sm rounded-lg focus:ring-brand-500 focus:border-brand-500 p-2 font-medium">
+                            <option value="ALL">Ano Todo (2026)</option>
+                            <option value="Q1">1º Trimestre (Jan-Mar)</option>
+                            <option value="Q2">2º Trimestre (Abr-Jun)</option>
+                            <option value="Q3">3º Trimestre (Jul-Set)</option>
+                            <option value="Q4">4º Trimestre (Out-Dez)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mt-6 overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50 text-slate-500 text-xs uppercase font-semibold border-b border-slate-200">
+                                <th class="py-3 px-4 w-16 text-center">Posição</th>
+                                <th class="py-3 px-4">Aluno</th>
+                                <th class="py-3 px-4 text-center">Presenças</th>
+                                <th class="py-3 px-4 text-center">Faltas</th>
+                                <th class="py-3 px-4 text-center">Aulas no Período</th>
+                                <th class="py-3 px-4 text-right">Aproveitamento</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rankingTbody" class="divide-y divide-slate-100 text-sm">
+                            <!-- Linhas de ranking -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB CONTENT: CADASTRAR ALUNOS -->
+        <section id="tab-students" class="tab-content space-y-6 hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Form Cadastro -->
+                <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 h-fit">
+                    <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2 pb-4 border-b border-slate-100">
+                        <i data-lucide="user-plus" class="w-5 h-5 text-brand-600"></i>
+                        Novo Aluno
+                    </h2>
+
+                    <form id="studentForm" onsubmit="handleSaveStudent(event)" class="mt-4 space-y-4">
+                        <input type="hidden" id="editStudentId" value="">
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Nome Completo *</label>
+                            <input type="text" id="studentName" required placeholder="Ex: João da Silva" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-brand-500 focus:border-brand-500 outline-none">
+                        </div>
+
+                        <div class="flex items-center gap-2 pt-2">
+                            <button type="submit" class="flex-1 py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-xl text-sm transition flex items-center justify-center gap-2 shadow-sm">
+                                <i data-lucide="check" class="w-4 h-4"></i>
+                                Salvar Aluno
+                            </button>
+                            <button type="button" onclick="resetStudentForm()" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold rounded-xl text-sm transition">
+                                Limpar
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Lista de Alunos -->
+                <div class="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+                    <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2 pb-4 border-b border-slate-100">
+                        <i data-lucide="users" class="w-5 h-5 text-slate-600"></i>
+                        Alunos Cadastrados
+                    </h2>
+
+                    <div class="mt-4 overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-50 text-slate-500 text-xs uppercase font-semibold border-b border-slate-200">
+                                    <th class="py-3 px-4">Nome</th>
+                                    <th class="py-3 px-4 text-right">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="studentsListTbody" class="divide-y divide-slate-100 text-sm">
+                                <!-- Lista de alunos -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB CONTENT: GRAFICOS & RELATORIOS -->
+        <section id="tab-charts" class="tab-content space-y-6 hidden">
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-100">
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+                            <i data-lucide="pie-chart" class="w-5 h-5 text-brand-600"></i>
+                            Análise Variável & Relatórios
+                        </h2>
+                        <p class="text-sm text-slate-500 mt-0.5">Acompanhe os gráficos de evolução das presenças ao longo dos domingos do ano.</p>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <label for="studentFilterChart" class="text-xs font-semibold text-slate-500 uppercase">Filtrar por Aluno:</label>
+                        <select id="studentFilterChart" onchange="renderCharts()" class="bg-slate-50 border border-slate-300 text-slate-800 text-sm rounded-lg focus:ring-brand-500 focus:border-brand-500 p-2 font-medium">
+                            <option value="ALL">Toda a Turma (Geral)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+                    <!-- Linha: Frequencia ao longo do ano -->
+                    <div class="lg:col-span-2 border border-slate-100 rounded-xl p-4 bg-slate-50/50">
+                        <h3 class="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
+                            <i data-lucide="line-chart" class="w-4 h-4 text-brand-600"></i>
+                            Evolução da Presença Domingo a Domingo
+                        </h3>
+                        <div class="relative h-64">
+                            <canvas id="timelineChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Rosca: Presenças vs Faltas -->
+                    <div class="border border-slate-100 rounded-xl p-4 bg-slate-50/50">
+                        <h3 class="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
+                            <i data-lucide="doughnut" class="w-4 h-4 text-brand-600"></i>
+                            Distribuição do Período
+                        </h3>
+                        <div class="relative h-64 flex items-center justify-center">
+                            <canvas id="distributionChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Barras: Comparativo Trimestral -->
+                    <div class="lg:col-span-3 border border-slate-100 rounded-xl p-4 bg-slate-50/50">
+                        <h3 class="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
+                            <i data-lucide="bar-chart-3" class="w-4 h-4 text-brand-600"></i>
+                            Média de Presença por Trimestre (1º, 2º, 3º e 4º Trim)
+                        </h3>
+                        <div class="relative h-60">
+                            <canvas id="quartersChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Modal de Suspensão de Aula -->
+    <div id="suspendModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-100">
+            <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+                <h3 class="font-bold text-slate-900 flex items-center gap-2">
+                    <i data-lucide="ban" class="w-5 h-5 text-amber-500"></i>
+                    Suspender Aula
+                </h3>
+                <button onclick="toggleSuspendModal()" class="text-slate-400 hover:text-slate-600">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <div class="mt-4 space-y-4">
+                <p class="text-sm text-slate-600">
+                    Ao suspender a aula do domingo <strong id="suspendModalDate" class="text-slate-900">--</strong>, ela não será contabilizada no cálculo do ranking de faltas e presenças.
+                </p>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Motivo / Justificativa</label>
+                    <input type="text" id="suspendReasonInput" placeholder="Ex: Feriado prolongado, Chuva forte, Evento especial" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm outline-none focus:ring-amber-500 focus:border-amber-500">
+                </div>
+            </div>
+
+            <div class="mt-6 flex items-center justify-end gap-3">
+                <button onclick="toggleSuspendModal()" class="px-4 py-2 bg-slate-100 text-slate-600 hover:bg-slate-200 rounded-xl text-sm font-semibold transition">
+                    Cancelar
+                </button>
+                <button onclick="confirmSuspendCurrentSunday()" class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-sm font-semibold transition">
+                    Confirmar Suspensão
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script Principal -->
+    <script>
+        // ESTADO GLOBAL DO APLICATIVO
+        let currentYear = 2026;
+        let students = [];
+        let attendanceData = {};
+        
+        let timelineChartInstance = null;
+        let distributionChartInstance = null;
+        let quartersChartInstance = null;
+
+        // ESTRUTURA DOS TRIMESTRES (MANDATÓRIO DOMINGOS)
+        const QUARTERS = {
+            Q1: { name: '1º Trimestre', months: [0, 1, 2] },  // Jan - Mar
+            Q2: { name: '2º Trimestre', months: [3, 4, 5] },  // Abr - Jun
+            Q3: { name: '3º Trimestre', months: [6, 7, 8] },  // Jul - Set
+            Q4: { name: '4º Trimestre', months: [9, 10, 11] } // Out - Dez
+        };
+
+        // INICIALIZAÇÃO DA APLICAÇÃO
+        document.addEventListener('DOMContentLoaded', () => {
+            loadLocalData();
+            updateYearSundays();
+            renderStudentsTable();
+            renderStudentChartOptions();
+            lucide.createIcons();
+        });
+
+        // CARREGAR DADOS DO LOCALSTORAGE
+        function loadLocalData() {
+            try {
+                const storedStudents = localStorage.getItem('school_students_v2');
+                const storedAttendance = localStorage.getItem('school_attendance_v2');
+
+                if (storedStudents) {
+                    students = JSON.parse(storedStudents);
+                } else {
+                    students = [];
+                }
+
+                if (storedAttendance) {
+                    attendanceData = JSON.parse(storedAttendance);
+                } else {
+                    attendanceData = {};
+                }
+            } catch (e) {
+                console.error('Erro ao ler dados do localStorage:', e);
+                students = [];
+                attendanceData = {};
+            }
+        }
+
+        function saveLocalData() {
+            localStorage.setItem('school_students_v2', JSON.stringify(students));
+            localStorage.setItem('school_attendance_v2', JSON.stringify(attendanceData));
+        }
+
+        function clearAllData() {
+            if (confirm("Tem certeza que deseja apagar TODOS os alunos e os registros de chamadas salvos? Esta ação não pode ser desfeita.")) {
+                localStorage.removeItem('school_students_v2');
+                localStorage.removeItem('school_attendance_v2');
+                students = [];
+                attendanceData = {};
+                
+                updateYearSundays();
+                renderStudentsTable();
+                renderStudentChartOptions();
+                alert("Todos os dados foram apagados com sucesso.");
+            }
+        }
+
+        // CÁLCULO DE TODOS OS DOMINGOS DO ANO
+        function getAllSundaysOfYear(year) {
+            const sundays = [];
+            const date = new Date(year, 0, 1);
+
+            while (date.getDay() !== 0) {
+                date.setDate(date.getDate() + 1);
+            }
+
+            while (date.getFullYear() === year) {
+                const yyyy = date.getFullYear();
+                const mm = String(date.getMonth() + 1).padStart(2, '0');
+                const dd = String(date.getDate()).padStart(2, '0');
+                
+                sundays.push({
+                    dateStr: `${yyyy}-${mm}-${dd}`,
+                    month: date.getMonth(),
+                    formatted: `${dd}/${mm}/${yyyy}`
+                });
+                date.setDate(date.getDate() + 7);
+            }
+            return sundays;
+        }
+
+        function changeYear() {
+            currentYear = parseInt(document.getElementById('selectYear').value);
+            updateYearSundays();
+        }
+
+        function updateYearSundays() {
+            onQuarterChange();
+            updateSummaryCards();
+            renderRanking();
+            renderCharts();
+        }
+
+        function onQuarterChange() {
+            const qKey = document.getElementById('selectQuarter').value;
+            const allowedMonths = QUARTERS[qKey].months;
+            const allSundays = getAllSundaysOfYear(currentYear);
+            
+            const quarterSundays = allSundays.filter(s => allowedMonths.includes(s.month));
+            const selectSunday = document.getElementById('selectSunday');
+            selectSunday.innerHTML = '';
+
+            quarterSundays.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s.dateStr;
+                opt.textContent = `Dom, ${s.formatted}`;
+                selectSunday.appendChild(opt);
+            });
+
+            loadAttendanceSheet();
+        }
+
+        // CARREGAR LISTA DE CHAMADA DA DATA SELECIONADA
+        function loadAttendanceSheet() {
+            const sundayDate = document.getElementById('selectSunday').value;
+            const tbody = document.getElementById('attendanceTbody');
+            const notice = document.getElementById('noStudentsNotice');
+            const banner = document.getElementById('suspendedBanner');
+            
+            tbody.innerHTML = '';
+
+            if (!sundayDate) return;
+
+            const dayRecord = attendanceData[sundayDate] || { suspended: false, reason: '', records: {} };
+
+            if (dayRecord.suspended) {
+                banner.classList.remove('hidden');
+                document.getElementById('suspendedReasonText').textContent = `Motivo: ${dayRecord.reason || 'Não informado'}`;
+            } else {
+                banner.classList.add('hidden');
+            }
+
+            document.getElementById('studentCountBadge').textContent = `${students.length} aluno(s)`;
+
+            if (students.length === 0) {
+                notice.classList.remove('hidden');
+                return;
+            } else {
+                notice.classList.add('hidden');
+            }
+
+            students.forEach(student => {
+                const currentStatus = (dayRecord.records && dayRecord.records[student.id]) ? dayRecord.records[student.id] : 'P';
+
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50/80 transition';
+                tr.innerHTML = `
+                    <td class="py-3 px-4 font-medium text-slate-800">
+                        ${student.name}
+                    </td>
+                    <td class="py-3 px-4">
+                        <div class="flex items-center justify-center gap-2">
+                            <button type="button" onclick="setAttendanceStatus('${student.id}', 'P')" id="btn-${student.id}-P" 
+                                class="status-btn px-4 py-1.5 rounded-lg font-semibold text-xs transition border flex items-center gap-1 ${currentStatus === 'P' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'}">
+                                <i data-lucide="check" class="w-3.5 h-3.5"></i> Presente
+                            </button>
+                            <button type="button" onclick="setAttendanceStatus('${student.id}', 'F')" id="btn-${student.id}-F" 
+                                class="status-btn px-4 py-1.5 rounded-lg font-semibold text-xs transition border flex items-center gap-1 ${currentStatus === 'F' ? 'bg-rose-600 text-white border-rose-600' : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'}">
+                                <i data-lucide="x" class="w-3.5 h-3.5"></i> Ausente
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            lucide.createIcons();
+        }
+
+        function setAttendanceStatus(studentId, status) {
+            const sundayDate = document.getElementById('selectSunday').value;
+            if (!sundayDate) return;
+
+            if (!attendanceData[sundayDate]) {
+                attendanceData[sundayDate] = { suspended: false, reason: '', records: {} };
+            }
+
+            attendanceData[sundayDate].records[studentId] = status;
+
+            const btnP = document.getElementById(`btn-${studentId}-P`);
+            const btnF = document.getElementById(`btn-${studentId}-F`);
+
+            if (btnP && btnF) {
+                btnP.className = `status-btn px-4 py-1.5 rounded-lg font-semibold text-xs transition border flex items-center gap-1 ${status === 'P' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'}`;
+                btnF.className = `status-btn px-4 py-1.5 rounded-lg font-semibold text-xs transition border flex items-center gap-1 ${status === 'F' ? 'bg-rose-600 text-white border-rose-600' : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'}`;
+            }
+        }
+
+        function markAll(status) {
+            students.forEach(s => {
+                setAttendanceStatus(s.id, status);
+            });
+        }
+
+        function saveAttendance() {
+            const sundayDate = document.getElementById('selectSunday').value;
+            if (!sundayDate) return;
+
+            if (!attendanceData[sundayDate]) {
+                attendanceData[sundayDate] = { suspended: false, reason: '', records: {} };
+            }
+
+            saveLocalData();
+            updateSummaryCards();
+            renderRanking();
+            renderCharts();
+
+            alert('Chamada salva com sucesso!');
+        }
+
+        // SUSPENSÃO DE AULAS
+        function toggleSuspendModal() {
+            const modal = document.getElementById('suspendModal');
+            const sundayDate = document.getElementById('selectSunday').value;
+            if (!sundayDate) return;
+
+            document.getElementById('suspendModalDate').textContent = sundayDate;
+            modal.classList.toggle('hidden');
+        }
+
+        function confirmSuspendCurrentSunday() {
+            const sundayDate = document.getElementById('selectSunday').value;
+            const reason = document.getElementById('suspendReasonInput').value || 'Aula cancelada';
+
+            if (!attendanceData[sundayDate]) {
+                attendanceData[sundayDate] = { suspended: true, reason: reason, records: {} };
+            } else {
+                attendanceData[sundayDate].suspended = true;
+                attendanceData[sundayDate].reason = reason;
+            }
+
+            saveLocalData();
+            toggleSuspendModal();
+            loadAttendanceSheet();
+            updateSummaryCards();
+            renderRanking();
+            renderCharts();
+        }
+
+        function toggleSuspendCurrentSunday() {
+            const sundayDate = document.getElementById('selectSunday').value;
+            if (attendanceData[sundayDate]) {
+                attendanceData[sundayDate].suspended = false;
+                saveLocalData();
+                loadAttendanceSheet();
+                updateSummaryCards();
+                renderRanking();
+                renderCharts();
+            }
+        }
+
+        // GESTÃO DE ALUNOS
+        function handleSaveStudent(e) {
+            e.preventDefault();
+            const editId = document.getElementById('editStudentId').value;
+            const name = document.getElementById('studentName').value.trim();
+
+            if (!name) return;
+
+            if (editId) {
+                const idx = students.findIndex(s => s.id === editId);
+                if (idx !== -1) {
+                    students[idx].name = name;
+                }
+            } else {
+                const newStudent = {
+                    id: 'std_' + Date.now(),
+                    name: name
+                };
+                students.push(newStudent);
+            }
+
+            saveLocalData();
+            resetStudentForm();
+            renderStudentsTable();
+            renderStudentChartOptions();
+            loadAttendanceSheet();
+            updateSummaryCards();
+            renderRanking();
+            renderCharts();
+        }
+
+        function editStudent(id) {
+            const student = students.find(s => s.id === id);
+            if (!student) return;
+
+            document.getElementById('editStudentId').value = student.id;
+            document.getElementById('studentName').value = student.name;
+        }
+
+        function deleteStudent(id) {
+            if (confirm('Deseja realmente excluir este aluno? Todos os seus registros passados serão apagados.')) {
+                students = students.filter(s => s.id !== id);
+                
+                Object.keys(attendanceData).forEach(date => {
+                    if (attendanceData[date].records) {
+                        delete attendanceData[date].records[id];
+                    }
+                });
+
+                saveLocalData();
+                renderStudentsTable();
+                renderStudentChartOptions();
+                loadAttendanceSheet();
+                updateSummaryCards();
+                renderRanking();
+                renderCharts();
+            }
+        }
+
+        function resetStudentForm() {
+            document.getElementById('editStudentId').value = '';
+            document.getElementById('studentForm').reset();
+        }
+
+        function renderStudentsTable() {
+            const tbody = document.getElementById('studentsListTbody');
+            tbody.innerHTML = '';
+
+            if (students.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="2" class="py-6 text-center text-slate-400">Nenhum aluno cadastrado.</td></tr>`;
+                return;
+            }
+
+            students.forEach(student => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50 transition';
+                tr.innerHTML = `
+                    <td class="py-3 px-4 font-semibold text-slate-800">${student.name}</td>
+                    <td class="py-3 px-4 text-right">
+                        <button onclick="editStudent('${student.id}')" class="p-1 text-slate-400 hover:text-brand-600 transition" title="Editar">
+                            <i data-lucide="edit-3" class="w-4 h-4"></i>
+                        </button>
+                        <button onclick="deleteStudent('${student.id}')" class="p-1 text-slate-400 hover:text-rose-600 transition ml-1" title="Excluir">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            lucide.createIcons();
+        }
+
+        function renderStudentChartOptions() {
+            const select = document.getElementById('studentFilterChart');
+            select.innerHTML = '<option value="ALL">Toda a Turma (Geral)</option>';
+            students.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s.id;
+                opt.textContent = s.name;
+                select.appendChild(opt);
+            });
+        }
+
+        // RANKING
+        function renderRanking() {
+            const filter = document.getElementById('rankingFilter').value;
+            const tbody = document.getElementById('rankingTbody');
+            tbody.innerHTML = '';
+
+            const allSundays = getAllSundaysOfYear(currentYear);
+            let targetSundays = [];
+
+            if (filter === 'ALL') {
+                targetSundays = allSundays;
+            } else {
+                const allowedMonths = QUARTERS[filter].months;
+                targetSundays = allSundays.filter(s => allowedMonths.includes(s.month));
+            }
+
+            const activeSundayDates = targetSundays
+                .map(s => s.dateStr)
+                .filter(dateStr => !attendanceData[dateStr] || !attendanceData[dateStr].suspended);
+
+            const totalHeld = activeSundayDates.length;
+
+            const rankingList = students.map(student => {
+                let pCount = 0;
+                let fCount = 0;
+
+                activeSundayDates.forEach(dateStr => {
+                    const record = attendanceData[dateStr]?.records?.[student.id];
+                    if (record === 'P') pCount++;
+                    else if (record === 'F') fCount++;
+                });
+
+                const pct = totalHeld > 0 ? (pCount / totalHeld) * 100 : 0;
+
+                return {
+                    id: student.id,
+                    name: student.name,
+                    pCount,
+                    fCount,
+                    pct
+                };
+            });
+
+            rankingList.sort((a, b) => b.pct - a.pct || b.pCount - a.pCount);
+
+            if (rankingList.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-slate-400">Nenhum aluno cadastrado para exibir no ranking.</td></tr>`;
+                return;
+            }
+
+            rankingList.forEach((item, index) => {
+                let badge = `<span class="font-bold text-slate-500">${index + 1}º</span>`;
+                if (index === 0) badge = `<span class="text-xl">🥇</span>`;
+                if (index === 1) badge = `<span class="text-xl">🥈</span>`;
+                if (index === 2) badge = `<span class="text-xl">🥉</span>`;
+
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50 transition';
+                tr.innerHTML = `
+                    <td class="py-3 px-4 text-center">${badge}</td>
+                    <td class="py-3 px-4 font-bold text-slate-800">${item.name}</td>
+                    <td class="py-3 px-4 text-center font-semibold text-emerald-600">${item.pCount}</td>
+                    <td class="py-3 px-4 text-center font-semibold text-rose-500">${item.fCount}</td>
+                    <td class="py-3 px-4 text-center text-slate-500">${totalHeld}</td>
+                    <td class="py-3 px-4 text-right">
+                        <span class="inline-block px-2.5 py-1 rounded-full text-xs font-bold ${item.pct >= 75 ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">
+                            ${item.pct.toFixed(1)}%
+                        </span>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // RESUMO DE CARDS
+        function updateSummaryCards() {
+            const allSundays = getAllSundaysOfYear(currentYear);
+            document.getElementById('statTotalSundays').textContent = allSundays.length;
+
+            let suspended = 0;
+            let totalP = 0;
+            let totalF = 0;
+
+            allSundays.forEach(s => {
+                const day = attendanceData[s.dateStr];
+                if (day) {
+                    if (day.suspended) suspended++;
+                    else if (day.records) {
+                        Object.values(day.records).forEach(status => {
+                            if (status === 'P') totalP++;
+                            if (status === 'F') totalF++;
+                        });
+                    }
+                }
+            });
+
+            const held = allSundays.length - suspended;
+            document.getElementById('statHeldClasses').textContent = held;
+            document.getElementById('statSuspendedClasses').textContent = suspended;
+            document.getElementById('statTotalStudents').textContent = students.length;
+
+            const totalRecords = totalP + totalF;
+            const avg = totalRecords > 0 ? ((totalP / totalRecords) * 100).toFixed(1) : '0';
+            document.getElementById('statAverageAttendance').textContent = `${avg}%`;
+        }
+
+        // GRÁFICOS
+        function renderCharts() {
+            const studentIdFilter = document.getElementById('studentFilterChart').value;
+            const allSundays = getAllSundaysOfYear(currentYear);
+
+            const activeSundays = allSundays.filter(s => !attendanceData[s.dateStr]?.suspended);
+
+            const timelineLabels = [];
+            const timelineData = [];
+
+            let globalP = 0;
+            let globalF = 0;
+
+            activeSundays.forEach(s => {
+                const records = attendanceData[s.dateStr]?.records || {};
+                let p = 0;
+                let total = 0;
+
+                if (studentIdFilter === 'ALL') {
+                    students.forEach(st => {
+                        const stt = records[st.id];
+                        if (stt === 'P') { p++; globalP++; total++; }
+                        else if (stt === 'F') { globalF++; total++; }
+                    });
+                } else {
+                    const stt = records[studentIdFilter];
+                    if (stt === 'P') { p++; globalP++; total++; }
+                    else if (stt === 'F') { globalF++; total++; }
+                }
+
+                const pct = total > 0 ? (p / total) * 100 : 0;
+                timelineLabels.push(s.formatted.substring(0, 5));
+                timelineData.push(pct.toFixed(1));
+            });
+
+            // 1. Linha - Timeline
+            if (timelineChartInstance) timelineChartInstance.destroy();
+            const ctx1 = document.getElementById('timelineChart').getContext('2d');
+            timelineChartInstance = new Chart(ctx1, {
+                type: 'line',
+                data: {
+                    labels: timelineLabels,
+                    datasets: [{
+                        label: '% Presença',
+                        data: timelineData,
+                        borderColor: '#0284c7',
+                        backgroundColor: 'rgba(2, 132, 199, 0.1)',
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { min: 0, max: 100, ticks: { callback: v => v + '%' } }
+                    }
+                }
+            });
+
+            // 2. Rosca - Distribuição
+            if (distributionChartInstance) distributionChartInstance.destroy();
+            const ctx2 = document.getElementById('distributionChart').getContext('2d');
+            distributionChartInstance = new Chart(ctx2, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Presenças', 'Ausências'],
+                    datasets: [{
+                        data: [globalP, globalF],
+                        backgroundColor: ['#10b981', '#f43f5e']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom' } }
+                }
+            });
+
+            // 3. Barras - Trimestres
+            const qAverages = ['Q1', 'Q2', 'Q3', 'Q4'].map(qKey => {
+                const months = QUARTERS[qKey].months;
+                const qSundays = activeSundays.filter(s => months.includes(s.month));
+                let qP = 0;
+                let qTotal = 0;
+
+                qSundays.forEach(s => {
+                    const recs = attendanceData[s.dateStr]?.records || {};
+                    if (studentIdFilter === 'ALL') {
+                        students.forEach(st => {
+                            if (recs[st.id] === 'P') { qP++; qTotal++; }
+                            else if (recs[st.id] === 'F') { qTotal++; }
+                        });
+                    } else {
+                        if (recs[studentIdFilter] === 'P') { qP++; qTotal++; }
+                        else if (recs[studentIdFilter] === 'F') { qTotal++; }
+                    }
+                });
+
+                return qTotal > 0 ? ((qP / qTotal) * 100).toFixed(1) : 0;
+            });
+
+            if (quartersChartInstance) quartersChartInstance.destroy();
+            const ctx3 = document.getElementById('quartersChart').getContext('2d');
+            quartersChartInstance = new Chart(ctx3, {
+                type: 'bar',
+                data: {
+                    labels: ['1º Trim (Jan-Mar)', '2º Trim (Abr-Jun)', '3º Trim (Jul-Set)', '4º Trim (Out-Dez)'],
+                    datasets: [{
+                        label: 'Média de Presença (%)',
+                        data: qAverages,
+                        backgroundColor: ['#3b82f6', '#06b6d4', '#10b981', '#f59e0b'],
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { y: { min: 0, max: 100, ticks: { callback: v => v + '%' } } }
+                }
+            });
+        }
+
+        // NAVEGAÇÃO DE ABAS
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('bg-brand-600', 'text-white');
+                btn.classList.add('text-slate-600', 'hover:bg-slate-100');
+            });
+
+            document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+            const activeBtn = document.getElementById(`tabBtn-${tabName}`);
+            activeBtn.classList.add('bg-brand-600', 'text-white');
+            activeBtn.classList.remove('text-slate-600', 'hover:bg-slate-100');
+
+            if (tabName === 'charts') {
+                renderCharts();
+            }
+        }
+    </script>
+</body>
+</html>
