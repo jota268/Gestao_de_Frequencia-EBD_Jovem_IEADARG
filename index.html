@@ -28,7 +28,12 @@
                 </div>
                 <div>
                     <h1 class="text-xl font-bold tracking-tight">Frequência Dominical</h1>
-                    <p class="text-xs text-indigo-200">Ano Letivo: <span id="current-year-display">2026</span></p>
+                    <div class="flex items-center space-x-2 mt-0.5">
+                        <span class="text-xs text-indigo-200">Ano Letivo:</span>
+                        <select id="year-selector" onchange="changeYear(this.value)" class="bg-indigo-800 text-white text-xs font-semibold px-2 py-1 rounded-lg border border-indigo-600 focus:outline-none focus:ring-2 focus:ring-white/50 cursor-pointer">
+                            <!-- Gerado dinamicamente -->
+                        </select>
+                    </div>
                 </div>
             </div>
             
@@ -299,23 +304,24 @@
 
     <script>
         // Data Store and State
-        const CURRENT_YEAR = 2026;
+        let CURRENT_YEAR = 2026;
         let students = [];
+        let allYearData = {}; // Format: { "2026": { attendanceRecords: {}, students: [] } } -> To keep global students or year-specific students. Let's keep students global or year-scoped. Global students is usually preferred for Sunday school, or let's keep students global and attendance per year.
         let attendanceRecords = {}; // Format: { "YYYY-MM-DD": { studentId: true/false, suspended: true/false } }
         let currentQuarter = 1;
         let activeSundayDate = null;
         let currentRankingPeriod = 'ano';
         let evolutionChartInstance = null;
         let quarterChartInstance = null;
+        let calculatedQuarters = {};
 
         // Initialize App on DOM Load
         document.addEventListener('DOMContentLoaded', () => {
-            document.getElementById('current-year-display').textContent = CURRENT_YEAR;
+            initYearSelector();
             loadFromLocalStorage();
             generateSundaysForYear();
             
             if (students.length === 0) {
-                // Seed demo data if empty
                 seedDemoData();
             }
 
@@ -325,17 +331,51 @@
             lucide.createIcons();
         });
 
-        // Local Storage Persistence
+        // Initialize Year Selector (2026 to 2035)
+        function initYearSelector() {
+            const selector = document.getElementById('year-selector');
+            selector.innerHTML = '';
+            for (let y = 2026; y <= 2035; y++) {
+                const opt = document.createElement('option');
+                opt.value = y;
+                opt.textContent = y;
+                if (y === CURRENT_YEAR) opt.selected = true;
+                selector.appendChild(opt);
+            }
+        }
+
+        function changeYear(newYear) {
+            // Save current year records before switching
+            saveToLocalStorage();
+            CURRENT_YEAR = parseInt(newYear);
+            activeSundayDate = null;
+            document.getElementById('attendance-panel').classList.add('hidden');
+            
+            loadFromLocalStorage();
+            generateSundaysForYear();
+            currentQuarter = 1;
+            selectQuarter(1);
+            renderStudents();
+            renderSundays();
+            updateDashboardStats();
+            showToast(`Ano alterado para ${CURRENT_YEAR}`, 'info');
+        }
+
+        // Local Storage Persistence keyed by Year
         function saveToLocalStorage() {
             localStorage.setItem('sunday_school_students', JSON.stringify(students));
-            localStorage.setItem('sunday_school_attendance', JSON.stringify(attendanceRecords));
+            localStorage.setItem(`sunday_school_attendance_${CURRENT_YEAR}`, JSON.stringify(attendanceRecords));
         }
 
         function loadFromLocalStorage() {
             const savedStudents = localStorage.getItem('sunday_school_students');
-            const savedAttendance = localStorage.getItem('sunday_school_attendance');
+            const savedAttendance = localStorage.getItem(`sunday_school_attendance_${CURRENT_YEAR}`);
+            
             if (savedStudents) students = JSON.parse(savedStudents);
+            else students = [];
+
             if (savedAttendance) attendanceRecords = JSON.parse(savedAttendance);
+            else attendanceRecords = {};
         }
 
         function seedDemoData() {
@@ -373,8 +413,6 @@
 
         // Calendar Calculation: Sundays divided into 4 quarters
         // Q1: Jan-Mar, Q2: Apr-Jun, Q3: Jul-Set, Q4: Out-Dez
-        let calculatedQuarters = {};
-
         function generateSundaysForYear() {
             calculatedQuarters = { 1: [], 2: [], 3: [], 4: [] };
             let d = new Date(CURRENT_YEAR, 0, 1);
