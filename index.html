@@ -762,6 +762,7 @@
 
       let bestDayName = '-';
       let maxDayPresents = -1;
+      const bestDayNames = [];
 
       const sundayLabels = [];
       const sundayDataPresents = [];
@@ -777,12 +778,19 @@
 
         if (dayPresents > maxDayPresents) {
           maxDayPresents = dayPresents;
-          bestDayName = `${s.formatted} (${dayPresents} pres.)`;
+          bestDayNames.length = 0;
+          bestDayNames.push(`${s.formatted} (${dayPresents} pres.)`);
+        } else if (dayPresents === maxDayPresents && maxDayPresents >= 0) {
+          bestDayNames.push(`${s.formatted} (${dayPresents} pres.)`);
         }
 
         sundayLabels.push(s.formatted);
         sundayDataPresents.push(dayPresents);
       });
+
+      if (bestDayNames.length > 0) {
+        bestDayName = bestDayNames.join(', ');
+      }
 
       const avgAttendancePct = totalPossibleOverall > 0 
         ? ((totalPresentsOverall / totalPossibleOverall) * 100).toFixed(1) 
